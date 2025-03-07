@@ -1,101 +1,101 @@
-from flask import Flask
-from threading import Thread
+# from flask import Flask
+# from threading import Thread
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "DICOM SCP is running"
+# @app.route("/")
+# def home():
+#     return "DICOM SCP is running"
 
-def run_flask():
-    app.run(host="0.0.0.0", port=8080)
+# def run_flask():
+#     app.run(host="0.0.0.0", port=8080)
 
-if __name__ == "__main__":
-    # Start Flask in a separate thread
-    Thread(target=run_flask, daemon=True).start()
+# if __name__ == "__main__":
 
-    # Start the DICOM server
-    from pynetdicom import AE, evt, AllStoragePresentationContexts
-    import os
-    import requests
-    from pydicom import dcmread
+#     Thread(target=run_flask, daemon=True).start()
 
-    SAVE_DIR = "received_dicom/"
-    os.makedirs(SAVE_DIR, exist_ok=True)
+#     # Start the DICOM server
+#     from pynetdicom import AE, evt, AllStoragePresentationContexts
+#     import os
+#     import requests
+#     from pydicom import dcmread
 
-    def handle_store(event):
-        dataset = event.dataset
-        dataset.file_meta = event.file_meta
-        file_path = os.path.join(SAVE_DIR, f"{dataset.SOPInstanceUID}.dcm")
-        dataset.save_as(file_path, write_like_original=False)
-        print(f"Received and saved DICOM file: {file_path}")
-        return 0x0000  # Success
+#     SAVE_DIR = "received_dicom/"
+#     os.makedirs(SAVE_DIR, exist_ok=True)
 
-    ae = AE(ae_title="STORAGE_SCP")
-    ae.supported_contexts = AllStoragePresentationContexts
-    handlers = [(evt.EVT_C_STORE, handle_store)]
+#     def handle_store(event):
+#         dataset = event.dataset
+#         dataset.file_meta = event.file_meta
+#         file_path = os.path.join(SAVE_DIR, f"{dataset.SOPInstanceUID}.dcm")
+#         dataset.save_as(file_path, write_like_original=False)
+#         print(f"Received and saved DICOM file: {file_path}")
+#         return 0x0000  # Success
 
-    print("Listening for DICOM images on port 11112...")
-    ae.start_server(("0.0.0.0", 11112), evt_handlers=handlers, block=True)
+#     ae = AE(ae_title="STORAGE_SCP")
+#     ae.supported_contexts = AllStoragePresentationContexts
+#     handlers = [(evt.EVT_C_STORE, handle_store)]
 
-
-# from pynetdicom import AE, evt, AllStoragePresentationContexts
-# import os
-# import requests
-# from pydicom import dcmread 
-
-# # Directory to store received DICOM files
-# SAVE_DIR = "received_dicom/"
-# os.makedirs(SAVE_DIR, exist_ok=True)
-
-# ALLOWED_AE_TITLES = ["PYNETDICOM"]
-# ALLOWED_IPS = ["192.168.1.50", "192.168.1.51", "127.0.0.1", "192.168.1.11"]
+#     print("Listening for DICOM images on port 11112...")
+#     ae.start_server(("0.0.0.0", 11112), evt_handlers=handlers, block=True)
 
 
+from pynetdicom import AE, evt, AllStoragePresentationContexts
+import os
+import requests
+from pydicom import dcmread 
 
-# def handle_store(event):
-#     print(event.assoc,"event.assoc show")
-#     requestor_ae = event.assoc.requestor.ae_title
-#     requestor_ip = event.assoc.requestor.address
-#     print(requestor_ae,"requestor_ae show")
-#     print(requestor_ip,"requestor_ip show")
-#     print(f"Incoming request from AE Title: {requestor_ae}, IP: {requestor_ip}")
-#     print(f"Received SOP Class UID: {event.dataset.SOPClassUID}")
+# Directory to store received DICOM files
+SAVE_DIR = "received_dicom/"
+os.makedirs(SAVE_DIR, exist_ok=True)
 
-#     # Check allowed AE Titles and IPs
-#     if requestor_ae not in ALLOWED_AE_TITLES or requestor_ip not in ALLOWED_IPS:
-#         print("Unauthorized request. Rejecting DICOM file.")
-#         return 0xA801  # Reject request
-
-#     # Proceed with file saving
-#     dataset = event.dataset
-#     dataset.file_meta = event.file_meta
-#     file_path = os.path.join(SAVE_DIR, f"{dataset.SOPInstanceUID}.dcm")
-
-#     dataset.save_as(file_path, write_like_original=False)
-#     print(f"Received and saved DICOM file: {file_path}")
-#     # file_path2 = "1.2.840.113619.2.415.3.2831191809.256.1739766547.142.8.dcm"
-#     upload_dicom(file_path)
-
-#     return 0x0000  # Success
+ALLOWED_AE_TITLES = ["PYNETDICOM"]
+ALLOWED_IPS = ["192.168.1.50", "192.168.1.51", "127.0.0.1", "192.168.1.11"]
 
 
-# # Function to upload DICOM file to backend API
-# def upload_dicom(file_path):
-#     url = "https://sass-pacs-development.onrender.com/v1/upload_dicom/"
-#     # url = "http://localhost:8000/v1/upload_dicom/"
-#     files = {'dicom_file': open(file_path, 'rb')}
-#     response = requests.post(url, files=files)
-#     if response.status_code == 200:
-#         print("DICOM file uploaded successfully:", response.json())
-#     else:
-#         print("Upload failed:", response.text)
 
-# # Create the DICOM SCP server
-# ae = AE(ae_title="STORAGE_SCP")  # Set AE Title for this server
-# ae.supported_contexts = AllStoragePresentationContexts
-# handlers = [(evt.EVT_C_STORE, handle_store)]
+def handle_store(event):
+    print(event.assoc,"event.assoc show")
+    requestor_ae = event.assoc.requestor.ae_title
+    requestor_ip = event.assoc.requestor.address
+    print(requestor_ae,"requestor_ae show")
+    print(requestor_ip,"requestor_ip show")
+    print(f"Incoming request from AE Title: {requestor_ae}, IP: {requestor_ip}")
+    print(f"Received SOP Class UID: {event.dataset.SOPClassUID}")
 
-# # Start listening for incoming DICOM images
-# print("Listening for DICOM images on port 11112...")
-# ae.start_server(("0.0.0.0", 11112), evt_handlers=handlers, block=True)
+    # Check allowed AE Titles and IPs
+    if requestor_ae not in ALLOWED_AE_TITLES or requestor_ip not in ALLOWED_IPS:
+        print("Unauthorized request. Rejecting DICOM file.")
+        return 0xA801  # Reject request
+
+    # Proceed with file saving
+    dataset = event.dataset
+    dataset.file_meta = event.file_meta
+    file_path = os.path.join(SAVE_DIR, f"{dataset.SOPInstanceUID}.dcm")
+
+    dataset.save_as(file_path, write_like_original=False)
+    print(f"Received and saved DICOM file: {file_path}")
+    # file_path2 = "1.2.840.113619.2.415.3.2831191809.256.1739766547.142.8.dcm"
+    upload_dicom(file_path)
+
+    return 0x0000  # Success
+
+
+# Function to upload DICOM file to backend API
+def upload_dicom(file_path):
+    url = "https://sass-pacs-development.onrender.com/v1/upload_dicom/"
+    # url = "http://localhost:8000/v1/upload_dicom/"
+    files = {'dicom_file': open(file_path, 'rb')}
+    response = requests.post(url, files=files)
+    if response.status_code == 200:
+        print("DICOM file uploaded successfully:", response.json())
+    else:
+        print("Upload failed:", response.text)
+
+# Create the DICOM SCP server
+ae = AE(ae_title="STORAGE_SCP")  # Set AE Title for this server
+ae.supported_contexts = AllStoragePresentationContexts
+handlers = [(evt.EVT_C_STORE, handle_store)]
+
+# Start listening for incoming DICOM images
+print("Listening for DICOM images on port 11112...")
+ae.start_server(("0.0.0.0", 11112), evt_handlers=handlers, block=True)
