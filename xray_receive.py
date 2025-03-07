@@ -93,11 +93,33 @@ ALLOWED_IPS = ["192.168.1.50", "192.168.1.51", "127.0.0.1", "192.168.1.11"]
 #         print("DICOM file uploaded successfully:", response.json())
 #     else:
 #         print("Upload failed:", response.text)
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def handle_store(event):
+    assoc = event.assoc
+    requestor_ae = assoc.requestor.ae_title
+    requestor_ip = assoc.requestor.address
 
-    print(event.assoc,"event.assoc show")
-    print("final event.assoc show")
+    logging.info(f"Incoming request from AE Title: {requestor_ae}, IP: {requestor_ip}")
+    logging.info(f"Received SOP Class UID: {event.dataset.SOPClassUID}")
+
+    if requestor_ae not in ALLOWED_AE_TITLES or requestor_ip not in ALLOWED_IPS:
+        logging.warning("Unauthorized request. Rejecting DICOM file.")
+        return 0xA801  # Reject request
+
+    try:
+        dataset = event.dataset
+        dataset.file_meta = event.file_meta
+        file_path = os.path.join(SAVE_DIR, f"{dataset.SOPInstanceUID}.dcm")
+        dataset.save_as(file_path, write_like_original=False)
+        logging.info(f"Received and saved DICOM file: {file_path}")
+        #upload_dicom(file_path) #uncomment when upload_dicom is ready.
+        return 0x0000  # Success
+    except Exception as e:
+        logging.error(f"Error saving DICOM file: {e}")
+        return 0xA801 
 
 # Create the DICOM SCP server
 ae = AE(ae_title="STORAGE_SCP")  # Set AE Title for this server
