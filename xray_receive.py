@@ -10,7 +10,7 @@ SAVE_DIR = "received_dicom/"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 ALLOWED_AE_TITLES = ["PYNETDICOM"]
-ALLOWED_IPS = ["192.168.1.50", "192.168.1.51", "127.0.0.1"]
+ALLOWED_IPS = ["192.168.1.50", "192.168.1.51", "127.0.0.1", "192.168.1.11"]
 
 
 
@@ -22,7 +22,7 @@ def handle_store(event):
     print(requestor_ip,"requestor_ip show")
     print(f"Incoming request from AE Title: {requestor_ae}, IP: {requestor_ip}")
     print(f"Received SOP Class UID: {event.dataset.SOPClassUID}")
-    
+
     # Check allowed AE Titles and IPs
     if requestor_ae not in ALLOWED_AE_TITLES or requestor_ip not in ALLOWED_IPS:
         print("Unauthorized request. Rejecting DICOM file.")
@@ -35,7 +35,7 @@ def handle_store(event):
 
     dataset.save_as(file_path, write_like_original=False)
     print(f"Received and saved DICOM file: {file_path}")
-    
+    # file_path2 = "1.2.840.113619.2.415.3.2831191809.256.1739766547.142.8.dcm"
     upload_dicom(file_path)
 
     return 0x0000  # Success
@@ -43,11 +43,9 @@ def handle_store(event):
 
 # Function to upload DICOM file to backend API
 def upload_dicom(file_path):
-    
     url = "https://sass-pacs-development.onrender.com/v1/upload_dicom/"
+    # url = "http://localhost:8000/v1/upload_dicom/"
     files = {'dicom_file': open(file_path, 'rb')}
-
-
     response = requests.post(url, files=files)
     if response.status_code == 200:
         print("DICOM file uploaded successfully:", response.json())
